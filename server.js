@@ -7,7 +7,6 @@ const FormData = require('form-data');
 const app = express();
 app.use(cors());
 
-// Устанавливаем лимит оперативной памяти на загрузку (30МБ)
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 30 * 1024 * 1024 } });
 
 app.post('/proxy', upload.single('file'), async (req, res) => {
@@ -17,16 +16,16 @@ app.post('/proxy', upload.single('file'), async (req, res) => {
     const apiKey = req.headers['authorization'];
     if (!apiKey) return res.status(401).send('Не указан API-ключ');
 
-    // Формируем внутренний запрос к Groq API
     const form = new FormData();
-    form.append('file', req.file.buffer, req.file.originalname);
-    form.append('model', req.body.model || 'whisper-large-v3');
+    // Принудительно приводим имя файла к нижнему регистру для обхода ошибки .MP3
+    form.append('file', req.file.buffer, req.file.originalname.toLowerCase());
+    form.append('model', req.body.model || 'whisper-1');
     form.append('language', req.body.language || 'ru');
     form.append('response_format', 'json');
     form.append('temperature', '0');
 
-    // Отправляем на боевой сервер Groq
-    const response = await axios.post('https://api.groq.com/openai/v1/audio/transcriptions', form, {
+    // Изменен URL отправки на сервера OpenAI
+    const response = await axios.post('https://api.openai.com/v1/audio/transcriptions', form, {
       headers: {
         ...form.getHeaders(),
         'Authorization': apiKey
