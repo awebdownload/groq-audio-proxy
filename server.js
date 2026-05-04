@@ -19,7 +19,7 @@ app.post('/proxy', upload.single('file'), async (req, res) => {
     const form = new FormData();
     // Принудительно приводим имя файла к нижнему регистру для обхода ошибки .MP3
     form.append('file', req.file.buffer, req.file.originalname.toLowerCase());
-    form.append('model', req.body.model || 'whisper-1');
+    form.append('model', req.body.model || 'gpt-4o-transcribe');
     form.append('language', req.body.language || 'ru');
     form.append('response_format', 'json');
     form.append('temperature', '0');
