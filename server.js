@@ -2,12 +2,23 @@ const express = require('express');
 const cors = require('cors');
 const multer = require('multer');
 const axios = require('axios');
-const FormData = require('form-data');
 
 const app = express();
 app.use(cors());
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 30 * 1024 * 1024 } });
+
+// Определяем формат аудио по имени файла для OpenRouter
+function getAudioFormat(filename) {
+  const name = filename.toLowerCase();
+  if (name.endsWith('.mp3')) return 'mp3';
+  if (name.endsWith('.wav')) return 'wav';
+  if (name.endsWith('.m4a')) return 'm4a';
+  if (name.endsWith('.ogg')) return 'ogg';
+  if (name.endsWith('.webm')) return 'webm';
+  if (name.endsWith('.flac')) return 'flac';
+  return 'mp3'; // По умолчанию
+}
 
 app.post('/proxy', upload.single('file'), async (req, res) => {
   try {
@@ -16,19 +27,24 @@ app.post('/proxy', upload.single('file'), async (req, res) => {
     const apiKey = req.headers['authorization'];
     if (!apiKey) return res.status(401).send('Не указан API-ключ');
 
-    const form = new FormData();
-    // Принудительно приводим имя файла к нижнему регистру для обхода ошибки .MP3
-    form.append('file', req.file.buffer, req.file.originalname.toLowerCase());
-    form.append('model', req.body.model || 'openai/gpt-4o-transcribe');
-    form.append('language', req.body.language || 'ru');
-    form.append('response_format', 'json');
-    form.append('temperature', '0');
+    // Кодируем аудиофайл в base64
+    const base64Audio = req.file.buffer.toString('base64');
+    const audioFormat = getAudioFormat(req.file.originalname);
 
-    // URL изменён на сервера OpenRouter
-    const response = await axios.post('https://openrouter.ai/api/v1/audio/transcriptions', form, {
+    // OpenRouter ожидает JSON с base64, а не multipart/form-data
+    const payload = {
+      model: req.body.model || 'openai/gpt-4o-transcribe',
+      audio: {
+        data: base64Audio,
+        format: audioFormat
+      },
+      language: req.body.language || 'ru'
+    };
+
+    const response = await axios.post('https://openrouter.ai/api/v1/audio/transcriptions', payload, {
       headers: {
-        ...form.getHeaders(),
-        'Authorization': apiKey
+        'Authorization': apiKey,
+        'Content-Type': 'application/json'
       }
     });
 
