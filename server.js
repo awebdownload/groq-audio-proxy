@@ -8,7 +8,6 @@ app.use(cors());
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 30 * 1024 * 1024 } });
 
-// Определяем формат аудио по имени файла для OpenRouter
 function getAudioFormat(filename) {
   const name = filename.toLowerCase();
   if (name.endsWith('.mp3')) return 'mp3';
@@ -17,21 +16,30 @@ function getAudioFormat(filename) {
   if (name.endsWith('.ogg')) return 'ogg';
   if (name.endsWith('.webm')) return 'webm';
   if (name.endsWith('.flac')) return 'flac';
-  return 'mp3'; // По умолчанию
+  return 'mp3';
 }
 
 app.post('/proxy', upload.single('file'), async (req, res) => {
   try {
-    if (!req.file) return res.status(400).send('Файл не передан');
+    console.log('--- НОВЫЙ ЗАПРОС ---');
+
+    if (!req.file) {
+      console.log('ОШИБКА: Файл не передан');
+      return res.status(400).send('Файл не передан');
+    }
+    console.log('Файл получен:', req.file.originalname, '| Размер:', req.file.size, 'байт');
 
     const apiKey = req.headers['authorization'];
-    if (!apiKey) return res.status(401).send('Не указан API-ключ');
+    if (!apiKey) {
+      console.log('ОШИБКА: Нет ключа');
+      return res.status(401).send('Не указан API-ключ');
+    }
+    console.log('Ключ есть. Начало (10 симв):', apiKey.substring(0, 17));
 
-    // Кодируем аудиофайл в base64
     const base64Audio = req.file.buffer.toString('base64');
     const audioFormat = getAudioFormat(req.file.originalname);
+    console.log('Формат:', audioFormat, '| base64 длина:', base64Audio.length);
 
-    // OpenRouter ожидает JSON с base64, а не multipart/form-data
     const payload = {
       model: req.body.model || 'openai/gpt-4o-transcribe',
       audio: {
@@ -40,6 +48,7 @@ app.post('/proxy', upload.single('file'), async (req, res) => {
       },
       language: req.body.language || 'ru'
     };
+    console.log('Модель:', payload.model, '| Отправка на OpenRouter...');
 
     const response = await axios.post('https://openrouter.ai/api/v1/audio/transcriptions', payload, {
       headers: {
@@ -48,8 +57,16 @@ app.post('/proxy', upload.single('file'), async (req, res) => {
       }
     });
 
+    console.log('УСПЕХ! Ответ OpenRouter:', JSON.stringify(response.data).substring(0, 200));
     res.json(response.data);
+
   } catch (error) {
+    // ПОДРОБНЫЙ ЛОГ ОШИБКИ
+    console.log('!!! ОШИБКА ОТ OPENROUTER !!!');
+    console.log('HTTP статус:', error.response?.status);
+    console.log('Тело ответа:', JSON.stringify(error.response?.data));
+    console.log('Сообщение:', error.message);
+
     res.status(error.response?.status || 500).json(error.response?.data || { error: error.message });
   }
 });
