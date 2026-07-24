@@ -120,7 +120,7 @@ async function cleanupTranscript(rawText, fileName, apiKey) {
     {
       model: 'openai/gpt-5.6-luna',
       temperature: 0.1,
-      max_tokens: 520000,
+      max_tokens: 32000,
       messages: [
         {
           role: 'system',
