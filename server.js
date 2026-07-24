@@ -335,35 +335,41 @@ app.get('/', (req, res) => {
       statusElement.className = className || '';
     }
 
-    function createMarkdown() {
-      var blocks = selectedResults.map(function (item, index) {
-        return (
-          '## 🎙️ Аудиофайл №' +
-          (index + 1) +
-          ' — ' +
-          item.name +
-          '\\n\\n```text\\n' +
-          item.text.trim() +
-          '\\n```'
-        );
-      });
+function createMarkdown() {
+  var fence = String.fromCharCode(96).repeat(3);
 
-      var summaries = selectedResults.map(function (item, index) {
-        var compact = item.text
-          .replace(/[#*_\\\`]/g, '')
-          .replace(/\\s+/g, ' ')
-          .trim();
+  var blocks = selectedResults.map(function (item, index) {
+    return (
+      '## 🎙️ Аудиофайл №' +
+      (index + 1) +
+      ' — ' +
+      item.name +
+      '\\n\\n' +
+      fence +
+      'text\\n' +
+      item.text.trim() +
+      '\\n' +
+      fence
+    );
+  });
 
-        var firstSentence = compact.split(/(?<=[.!?])\\s+/)[0] || compact;
-        return (index + 1) + '. ' + item.name + ' — ' + firstSentence;
-      });
+  var summaries = selectedResults.map(function (item, index) {
+    var compact = item.text
+      .replace(/[#*_]/g, '')
+      .replace(/\\s+/g, ' ')
+      .trim();
 
-      return (
-        blocks.join('\\n\\n---\\n\\n') +
-        '\\n\\n---\\n\\n📌 **КРАТКОЕ СОДЕРЖАНИЕ:**\\n' +
-        summaries.join('\\n')
-      );
-    }
+    var firstSentence = compact.split(/(?<=[.!?])\\s+/)[0] || compact;
+
+    return (index + 1) + '. ' + item.name + ' — ' + firstSentence;
+  });
+
+  return (
+    blocks.join('\\n\\n---\\n\\n') +
+    '\\n\\n---\\n\\n📌 **КРАТКОЕ СОДЕРЖАНИЕ:**\\n' +
+    summaries.join('\\n')
+  );
+}
 
     function showResult() {
       var markdown = createMarkdown();
