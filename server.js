@@ -118,9 +118,9 @@ async function cleanupTranscript(rawText, fileName, apiKey) {
   const response = await axios.post(
     'https://openrouter.ai/api/v1/chat/completions',
     {
-      model: 'openai/gpt-4.1-mini',
+      model: 'openai/gpt-5.6-luna',
       temperature: 0.1,
-      max_tokens: 8000,
+      max_tokens: 520000,
       messages: [
         {
           role: 'system',
